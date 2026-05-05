@@ -126,6 +126,26 @@ class Dropzone {
         _DragEventDispatcher.dropEvent.forTarget(element).listen(_handleDrop));
   }
 
+  /// Runs [onAccepted] when [_currentDrag] is non-null and this dropzone accepts
+  /// that drag over [dropzoneElement]; runs [onRejected] when there is a drag
+  /// but it is not accepted. No-ops when there is no active drag.
+  void _withActiveDragForDropzone(
+    Element dropzoneElement, {
+    required void Function(DropzoneEvent dropzoneEvent) onAccepted,
+    void Function(Element dropzoneElement)? onRejected,
+  }) {
+    final drag = _currentDrag;
+    if (drag == null) {
+      return;
+    }
+    if (acceptor == null ||
+        acceptor!.accepts(drag.element, drag.draggableId, dropzoneElement)) {
+      onAccepted(DropzoneEvent._(dropzoneElement, drag));
+    } else if (onRejected != null) {
+      onRejected(dropzoneElement);
+    }
+  }
+
   /// Handles dragEnter events.
   void _handleDragEnter(MouseEvent event) {
     // Only handle dragEnter if user moved from outside of element into the
@@ -136,38 +156,26 @@ class Dropzone {
       return;
     }
 
-    // Test if the current draggable is accepted by this dropzone. If there is
-    // no accepter all are accepted.
-    if (acceptor == null ||
-        acceptor!.accepts(_currentDrag!.element, _currentDrag!.draggableId,
-            event.currentTarget as Element)) {
-      // Fire dragEnter event.
-      if (_onDragEnter != null) {
-        _onDragEnter!.add(
-            DropzoneEvent._(event.currentTarget as Element, _currentDrag!));
-      }
-
-      // Add the css class to indicate drag over.
-      (event.currentTarget as Element).classes.add(overClass);
-    } else {
-      // Add the css class to indicate invalid drag over.
-      (event.currentTarget as Element).classes.add(invalidClass);
-    }
+    _withActiveDragForDropzone(
+      event.currentTarget as Element,
+      onAccepted: (dropzoneEvent) {
+        _onDragEnter?.add(dropzoneEvent);
+        dropzoneEvent.dropzoneElement.classes.add(overClass);
+      },
+      onRejected: (dropzoneElement) {
+        dropzoneElement.classes.add(invalidClass);
+      },
+    );
   }
 
   /// Handles dragOver events.
   void _handleDragOver(MouseEvent event) {
-    // Test if the current draggable is accepted by this dropzone. If there is
-    // no accepter all are accepted.
-    if (acceptor == null ||
-        acceptor!.accepts(_currentDrag!.element, _currentDrag!.draggableId,
-            event.currentTarget as Element)) {
-      // Fire dragOver event.
-      if (_onDragOver != null) {
-        _onDragOver!.add(
-            DropzoneEvent._(event.currentTarget as Element, _currentDrag!));
-      }
-    }
+    _withActiveDragForDropzone(
+      event.currentTarget as Element,
+      onAccepted: (dropzoneEvent) {
+        _onDragOver?.add(dropzoneEvent);
+      },
+    );
   }
 
   /// Handles dragLeave events.
@@ -180,38 +188,26 @@ class Dropzone {
       return;
     }
 
-    // Test if the current draggable is accepted by this dropzone. If there is
-    // no accepter all are accepted.
-    if (acceptor == null ||
-        acceptor!.accepts(_currentDrag!.element, _currentDrag!.draggableId,
-            event.currentTarget as Element)) {
-      // Fire dragLeave event.
-      if (_onDragLeave != null) {
-        _onDragLeave!.add(
-            DropzoneEvent._(event.currentTarget as Element, _currentDrag!));
-      }
-
-      // Remove the css class.
-      (event.currentTarget as Element).classes.remove(overClass);
-    } else {
-      // Remove the invalid drag css class.
-      (event.currentTarget as Element).classes.remove(invalidClass);
-    }
+    _withActiveDragForDropzone(
+      event.currentTarget as Element,
+      onAccepted: (dropzoneEvent) {
+        _onDragLeave?.add(dropzoneEvent);
+        dropzoneEvent.dropzoneElement.classes.remove(overClass);
+      },
+      onRejected: (dropzoneElement) {
+        dropzoneElement.classes.remove(invalidClass);
+      },
+    );
   }
 
   /// Handles drop events.
   void _handleDrop(MouseEvent event) {
-    // Test if the current draggable is accepted by this dropzone. If there is
-    // no accepter all are accepted.
-    if (acceptor == null ||
-        acceptor!.accepts(_currentDrag!.element, _currentDrag!.draggableId,
-            event.currentTarget as Element)) {
-      // Fire drop event.
-      if (_onDrop != null) {
-        _onDrop!.add(
-            DropzoneEvent._(event.currentTarget as Element, _currentDrag!));
-      }
-    }
+    _withActiveDragForDropzone(
+      event.currentTarget as Element,
+      onAccepted: (dropzoneEvent) {
+        _onDrop?.add(dropzoneEvent);
+      },
+    );
   }
 
   /// Unistalls all listeners.
